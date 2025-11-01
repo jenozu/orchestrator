@@ -1,0 +1,22 @@
+```mermaid
+flowchart TD
+  A[Users] --> B[Frontend]
+  B --> C[Backend API]
+  C --> D[(Database)]
+  C --> E[External Services]
+  subgraph Agents
+    O[Orchestrator]
+    P[PRD]
+    G[Diagrammer]
+    BE[Backend Agent]
+    FE[Frontend Agent]
+    QA[QA Agent]
+  end
+  O -->|tasks| P
+  O -->|tasks| G
+  O -->|tasks| BE
+  O -->|tasks| FE
+  O -->|tasks| QA
+  O -->|RAG| R[(Vector Store)]
+```
+

@@ -1,0 +1,8 @@
+langchain
+langgraph
+pytest
+chromadb
+openai
+mcp
+langgraph-checkpoint-postgres  # For persistent learning
+
