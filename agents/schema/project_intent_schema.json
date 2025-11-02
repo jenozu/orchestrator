@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "properties": {
+    "project_name": {
+      "type": "string",
+      "description": "A concise, kebab-case name for the project (e.g., 'e-commerce-platform')."
+    },
+    "project_description": {
+      "type": "string",
+      "description": "A one-sentence summary of the project's core function."
+    },
+    "project_type": {
+      "type": "string",
+      "enum": ["web-app", "api-service", "cli-tool", "library", "data-pipeline"],
+      "description": "The primary type of software to be built. Default to 'web-app' if unclear."
+    },
+    "required_features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "A list of key features or user stories to be implemented (e.g., 'user authentication', 'CRUD for products', 'payment gateway integration')."
+    },
+    "technology_stack": {
+      "type": "object",
+      "properties": {
+        "backend": {"type": "string", "description": "Preferred backend framework (e.g., 'FastAPI', 'Node.js/Express'). Infer from context if not explicit."},
+        "frontend": {"type": "string", "description": "Preferred frontend framework (e.g., 'React', 'Vue', 'Next.js'). Infer from context if not explicit."},
+        "database": {"type": "string", "description": "Preferred database (e.g., 'PostgreSQL', 'MongoDB'). Infer from context if not explicit."}
+      },
+      "description": "Specific technology choices, if mentioned by the user. Should be an empty object if no technologies are specified."
+    },
+    "initial_tasks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "A list of high-level tasks for the Orchestrator to prioritize (e.g., 'Draft PRD', 'Scaffold Backend', 'Create Database Schema'). Default to ['Draft PRD', 'Generate Architecture Diagram']."
+    }
+  },
+  "required": ["project_name", "project_description", "required_features"]
+}
+

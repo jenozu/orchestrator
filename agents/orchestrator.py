@@ -6,6 +6,12 @@ except Exception:  # pragma: no cover
     END = "END"  # type: ignore
     StateGraph = object  # type: ignore
 
+# Import subagents
+try:
+    from agents.subagents.intent_parser import run_task as run_intent_parser
+except ImportError:
+    run_intent_parser = None
+
 
 class Orchestrator:
     """Coordinates task DAG execution and subagent dispatch.
@@ -25,9 +31,10 @@ class Orchestrator:
             self.learning_memory = None
 
     def build_graph(self) -> None:
-        """Construct a trivial graph placeholder.
+        """Construct a graph with IntentParser as the entry point.
 
-        Later we will add parallel branches and subagent nodes.
+        The IntentParser node translates raw user requests into structured JSON,
+        then transitions to other subagents for further processing.
         """
         if StateGraph is object:
             # LangGraph not installed; keep skeleton valid
@@ -35,14 +42,23 @@ class Orchestrator:
             return
         graph = StateGraph(dict)
 
-        def start_node(state: Dict[str, Any]) -> Dict[str, Any]:
-            state = dict(state or {})
-            state["status"] = "started"
-            return state
-
-        graph.add_node("start", start_node)
-        graph.set_entry_point("start")
-        graph.add_edge("start", END)
+        # Add the IntentParser as the entry point
+        if run_intent_parser:
+            graph.add_node("intent_parser", run_intent_parser)
+            graph.set_entry_point("intent_parser")
+            # For now, IntentParser transitions to END
+            # Later we'll add edges to other subagents (PRD, Diagrammer, etc.)
+            graph.add_edge("intent_parser", END)
+        else:
+            # Fallback if IntentParser not available
+            def start_node(state: Dict[str, Any]) -> Dict[str, Any]:
+                state = dict(state or {})
+                state["status"] = "started"
+                return state
+            graph.add_node("start", start_node)
+            graph.set_entry_point("start")
+            graph.add_edge("start", END)
+        
         self._graph = graph
 
     def run_once(self, initial_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
