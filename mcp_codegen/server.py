@@ -190,12 +190,18 @@ async def call_tool(name: str, arguments: dict):
 
 async def main():
     """Run the MCP server."""
+    from mcp.server.stdio import stdio_server
+    
     # Initialize RAG store
     await rag_tool.rag_store.initialize()
     
-    # Start server
-    async with app:
-        await app.run()
+    # Start server using stdio transport
+    async with stdio_server() as (read_stream, write_stream):
+        await app.run(
+            read_stream,
+            write_stream,
+            app.create_initialization_options()
+        )
 
 
 if __name__ == "__main__":

@@ -1,22 +1,27 @@
 {
   "$schema": "https://schemas.cursor.sh/mcp.config.schema.json",
-  "clients": [
-    {
-      "name": "filesystem",
+  "mcpServers": {
+    "filesystem": {
       "command": "builtin",
       "args": {
-        "tools": ["read_file", "write_file", "edit_file", "ls"]
+        "tools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "ls"
+        ]
       }
-    },
-    {
-      "name": "codegen",
-      "command": "python",
-      "args": ["-m", "mcp_codegen.server"]
     }
-  ],
+  },
   "policies": {
-    "workspaceAllowlist": ["./"],
-    "pathDenylist": ["node_modules/**", ".git/**", ".venv/**"],
+    "workspaceAllowlist": [
+      "./"
+    ],
+    "pathDenylist": [
+      "node_modules/**",
+      ".git/**",
+      ".venv/**"
+    ],
     "maxToolOutputChars": 200000
   }
 }
