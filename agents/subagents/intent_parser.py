@@ -35,12 +35,17 @@ def run_task(inputs: Dict[str, Any]) -> Dict[str, Any]:
     if not raw_user_request:
         return {"parsed_intent": None, "error": "No raw user request provided."}
 
+    # Build system prompt with schema information
+    schema_str = json.dumps(PROJECT_INTENT_SCHEMA, indent=2) if PROJECT_INTENT_SCHEMA else "No schema available"
+    
     system_prompt = (
         "You are the Intent Parser Agent. Your task is to analyze the user's request "
         "for a new software project and translate it into a structured JSON object. "
-        "You MUST strictly adhere to the provided JSON schema. Infer missing details "
-        "logically (e.g., project_name from description) but do not invent features. "
-        "If a technology is not specified, leave the field blank or infer a common default."
+        "You MUST strictly adhere to the following JSON schema:\n\n"
+        f"{schema_str}\n\n"
+        "Infer missing details logically (e.g., project_name from description) but do not invent features. "
+        "If a technology is not specified, leave the field blank or infer a common default. "
+        "Return ONLY valid JSON that matches the schema structure."
     )
 
     try:
@@ -54,12 +59,7 @@ def run_task(inputs: Dict[str, Any]) -> Dict[str, Any]:
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Translate this project request into JSON: '{raw_user_request}'"}
-            ],
-            # Pass the schema in the prompt for better adherence,
-            # as the response_format only guarantees JSON, not schema adherence.
-            # For true schema enforcement, use the function calling API if available.
-            # For simplicity here, we rely on the prompt and JSON mode.
-            extra_body={"schema": PROJECT_INTENT_SCHEMA}
+            ]
         )
 
         # The response content is a JSON string
@@ -70,8 +70,23 @@ def run_task(inputs: Dict[str, Any]) -> Dict[str, Any]:
         return {"parsed_intent": parsed_intent, "raw_user_request": raw_user_request}
 
     except Exception as e:
-        print(f"IntentParser Error: {e}")
-        return {"parsed_intent": None, "error": str(e)}
+        error_msg = str(e)
+        error_type = type(e).__name__
+        print(f"IntentParser Error ({error_type}): {error_msg}")
+        
+        # Provide helpful error messages
+        if "Connection" in error_type or "connection" in error_msg.lower():
+            return {
+                "parsed_intent": None,
+                "error": f"Connection error: {error_msg}. Check your internet connection and OpenAI API status."
+            }
+        elif "api_key" in error_msg.lower() or "authentication" in error_msg.lower():
+            return {
+                "parsed_intent": None,
+                "error": f"Authentication error: {error_msg}. Verify your OPENAI_API_KEY is correct."
+            }
+        else:
+            return {"parsed_intent": None, "error": f"{error_type}: {error_msg}"}
 
 
 # Note: In a real LangGraph setup, this function would be the node's executor.

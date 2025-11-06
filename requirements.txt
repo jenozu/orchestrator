@@ -5,4 +5,5 @@ chromadb
 openai
 mcp
 langgraph-checkpoint-postgres  # For persistent learning
+python-dotenv  # For loading .env files
 

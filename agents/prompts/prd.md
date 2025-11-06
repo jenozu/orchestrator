@@ -4,3 +4,8 @@ Outputs: path `docs/prd.md`, status, salient bullets.
 Done when: goals, non-goals, 3+ user stories, MVP milestone present.
 Include citations to related issues/PRs if referenced.
 
+RAG Instructions:
+- Consult the `prd` and `shared` knowledge bases to ensure your requirements follow established templates and best practices.
+- Reference PRD templates, user story formats, and feature prioritization frameworks from your knowledge base.
+- Use acceptance criteria templates and success metrics definitions from retrieved context.
+
