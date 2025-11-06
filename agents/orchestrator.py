@@ -12,6 +12,16 @@ try:
 except ImportError:
     run_intent_parser = None
 
+try:
+    from agents.subagents.rules_generator import run_task as run_rules_generator
+except ImportError:
+    run_rules_generator = None
+
+try:
+    from agents.subagents.prd import run_task as run_prd_agent
+except ImportError:
+    run_prd_agent = None
+
 
 class Orchestrator:
     """Coordinates task DAG execution and subagent dispatch.
@@ -34,7 +44,9 @@ class Orchestrator:
         """Construct a graph with IntentParser as the entry point.
 
         The IntentParser node translates raw user requests into structured JSON,
-        then transitions to other subagents for further processing.
+        then transitions to RulesGenerator, and then to PRD Agent for further processing.
+        
+        Flow: intent_parser -> rules_generator -> prd_agent -> END
         """
         if StateGraph is object:
             # LangGraph not installed; keep skeleton valid
@@ -46,9 +58,23 @@ class Orchestrator:
         if run_intent_parser:
             graph.add_node("intent_parser", run_intent_parser)
             graph.set_entry_point("intent_parser")
-            # For now, IntentParser transitions to END
-            # Later we'll add edges to other subagents (PRD, Diagrammer, etc.)
-            graph.add_edge("intent_parser", END)
+            
+            # Add RulesGenerator node to generate project rules and task list
+            if run_rules_generator:
+                graph.add_node("rules_generator", run_rules_generator)
+                graph.add_edge("intent_parser", "rules_generator")
+                
+                # Add PRD Agent node
+                if run_prd_agent:
+                    graph.add_node("prd_agent", run_prd_agent)
+                    graph.add_edge("rules_generator", "prd_agent")
+                    graph.add_edge("prd_agent", END)
+                else:
+                    # If PRD agent not available, go to END
+                    graph.add_edge("rules_generator", END)
+            else:
+                # If RulesGenerator not available, go directly to END
+                graph.add_edge("intent_parser", END)
         else:
             # Fallback if IntentParser not available
             def start_node(state: Dict[str, Any]) -> Dict[str, Any]:

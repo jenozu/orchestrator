@@ -1,0 +1,31 @@
+graph TD
+    A[User Request] -->|Raw Text| B[Intent Parser]
+    B -->|Structured JSON| C[Rules Generator]
+    C -->|Generate| D[.cursor/rules.md]
+    C -->|Generate| E[docs/tasks.md]
+    C -->|Pass State| F[PRD Agent]
+    F -->|Read| D
+    F -->|Read| E
+    F -->|Draft| G[docs/prd.md]
+    F -->|Pass State| H[Backend Agent]
+    H -->|Read| D
+    H -->|Read| E
+    H -->|Implement| I[Backend Code]
+    H -->|Pass State| J[Frontend Agent]
+    J -->|Read| D
+    J -->|Read| E
+    J -->|Implement| K[Frontend Code]
+    J -->|Pass State| L[QA Agent]
+    L -->|Read| D
+    L -->|Read| E
+    L -->|Validate| M[Test Reports]
+    
+    style D fill:#90EE90
+    style E fill:#90EE90
+    style C fill:#FFD700
+    style B fill:#87CEEB
+    style F fill:#DDA0DD
+    style H fill:#DDA0DD
+    style J fill:#DDA0DD
+    style L fill:#DDA0DD
+

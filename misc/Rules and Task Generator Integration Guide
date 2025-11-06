@@ -1,0 +1,160 @@
+# Rules and Task Generator Integration Guide
+
+This guide details the implementation of a new feature that automatically generates two critical project files based on the structured input from the `IntentParser`:
+1.  **Project Rules:** A file for agents to adhere to (e.g., coding standards, security).
+2.  **Master Task List:** A sequential, checklist-style task list for project execution.
+
+This feature will be implemented as a new node in your LangGraph Orchestrator, running immediately after the `IntentParser`.
+
+## 1. Create the Rules Generator Agent
+
+We will create a new Python file that houses the logic for generating the two required documents using the OpenAI API.
+
+**File: `agents/subagents/rules_generator.py`**
+
+```python
+import json
+from typing import Dict, Any
+from openai import OpenAI
+
+# Initialize the LLM client (assuming environment variables are set)
+client = OpenAI()
+
+# System prompt for generating the rules file
+RULES_SYSTEM_PROMPT = """
+You are the Project Rules Generator. Your task is to create a high-level, project-specific rules document for a team of AI agents. 
+The rules must be derived from the provided project intent and cover general areas like coding standards, security, and documentation.
+The output MUST be a clean Markdown document.
+"""
+
+# System prompt for generating the master task list
+TASK_LIST_SYSTEM_PROMPT = """
+You are the Master Task List Generator. Your task is to take the structured project intent and convert the 'required_features' into a sequential, step-by-step master task list.
+The list must be formatted as a Markdown checklist, with each item representing a high-level task for the agents to complete.
+The list should be organized logically (e.g., Setup -> PRD -> Backend -> Frontend -> QA).
+The output MUST be a clean Markdown document.
+"""
+
+def generate_document(system_prompt: str, user_prompt: str) -> str:
+    """Helper function to call the OpenAI API with a specific prompt."""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini", # Use a reliable model for content generation
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error generating document: {e}"
+
+def run_rules_generator(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generates the project rules and master task list files based on parsed intent.
+    """
+    parsed_intent = inputs.get("parsed_intent")
+    
+    if not parsed_intent:
+        return {"rules_generated": False, "error": "No parsed intent found."}
+
+    # Convert the structured intent back to a string for the LLM prompt
+    intent_str = json.dumps(parsed_intent, indent=2)
+    
+    # --- 1. Generate Project Rules ---
+    rules_content = generate_document(
+        RULES_SYSTEM_PROMPT,
+        f"Generate project rules for the following intent:\n\n{intent_str}"
+    )
+    
+    # Write the rules file to the designated location
+    rules_path = ".cursor/rules.md"
+    with open(rules_path, "w") as f:
+        f.write(rules_content)
+    
+    # --- 2. Generate Master Task List ---
+    task_list_content = generate_document(
+        TASK_LIST_SYSTEM_PROMPT,
+        f"Generate a sequential master task list (Markdown checklist) for the following project intent:\n\n{intent_str}"
+    )
+    
+    # Write the task list file to the designated location
+    task_list_path = "docs/tasks.md"
+    with open(task_list_path, "w") as f:
+        f.write(task_list_content)
+
+    # Return the paths of the generated files to the LangGraph state
+    return {
+        "rules_generated": True,
+        "rules_path": rules_path,
+        "task_list_path": task_list_path
+    }
+
+# Note: The existing 'docs/tasks.md' file will be overwritten with the new, dynamic list.
+```
+
+## 2. Update the Orchestrator (LangGraph)
+
+You need to integrate the new `run_rules_generator` function as a node in your `agents/orchestrator.py`. This node should run immediately after the `intent_parser`.
+
+**File: `agents/orchestrator.py` (Conceptual Changes)**
+
+```python
+# ... existing imports ...
+from langgraph.graph import StateGraph, END
+from agents.subagents.intent_parser import run_intent_parser
+from agents.subagents.rules_generator import run_rules_generator # <-- NEW IMPORT
+from agents.subagents.prd import run_prd_agent
+# ... other subagent imports ...
+
+# Define the state (your existing state object)
+class AgentState(TypedDict):
+    raw_user_request: str
+    parsed_intent: Dict[str, Any]
+    rules_generated: bool # <-- NEW STATE FIELD
+    # ... existing state fields ...
+
+class Orchestrator:
+    # ...
+    
+    def build_graph(self):
+        # 1. Initialize the graph with the state
+        graph = StateGraph(AgentState)
+
+        # 2. Add the new nodes
+        graph.add_node("intent_parser", run_intent_parser)
+        graph.add_node("rules_generator", run_rules_generator) # <-- NEW NODE
+        graph.add_node("prd_agent", run_prd_agent)
+        # ... add other subagent nodes ...
+
+        # 3. Set the entry point
+        graph.set_entry_point("intent_parser")
+
+        # 4. Define the new sequence: IntentParser -> RulesGenerator -> PRD Agent
+        graph.add_edge("intent_parser", "rules_generator") 
+        graph.add_edge("rules_generator", "prd_agent") # <-- Transition to the next step
+        
+        # ... existing transitions for other agents ...
+
+        self.app = graph.compile()
+    # ...
+```
+
+## 3. Agent Prompt Update (Crucial Step)
+
+The final step is to ensure your subagents are instructed to read and adhere to the newly generated rules and task list.
+
+### A. Update PRD Agent Prompt (`agents/prompts/prd.md`)
+
+The PRD Agent should be the first to use the new rules and task list.
+
+> "You are the PRD Agent. Your task is to draft the Product Requirements Document. **You MUST first read and adhere to the project rules in `.cursor/rules.md`** and ensure your PRD covers the first few tasks listed in `docs/tasks.md`."
+
+### B. Update Subagent Logic (General)
+
+For all subsequent agents (Diagrammer, Backend, Frontend, QA), ensure their execution logic includes a step to:
+
+1.  **Read `.cursor/rules.md`:** Inject the content of this file into the LLM's context as a "Constraint" or "Style Guide."
+2.  **Read `docs/tasks.md`:** Inject the content of this file and instruct the agent to focus on the next uncompleted task.
+
+By implementing this `Rules and Task Generator`, you create a powerful, self-governing mechanism that ensures all agents are aligned with the project's standards and are working sequentially through a dynamically generated plan.
