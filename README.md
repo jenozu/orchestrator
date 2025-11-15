@@ -56,6 +56,106 @@ orch.build_graph()
 result = orch.run_once({"initial": "state"})
 ```
 
+### MCP Codegen Server - Persistent Background Execution
+
+The MCP Codegen server can run persistently in the background using pm2, ensuring 24/7 availability and automatic restart on crashes or system reboots.
+
+#### Quick Start (Manual)
+
+**Windows (PowerShell):**
+```powershell
+cd c:\Users\andel\Desktop\orchestrator
+python -m mcp_codegen.server --stdio
+```
+
+**Linux/Mac (Bash):**
+```bash
+cd ~/orchestrator
+python3 -m mcp_codegen.server --stdio
+```
+
+Keep the terminal open while using the server. Press `Ctrl+C` to stop.
+
+#### Persistent Deployment (24/7 Operation)
+
+For production use, run the server as a background service with pm2:
+
+**Windows (PowerShell):**
+```powershell
+# Install pm2 (requires Node.js)
+npm install -g pm2
+
+# Start the MCP server with pm2
+.\scripts\start_mcp_server.ps1
+
+# Configure auto-start on system boot
+pm2 startup
+# Follow the instructions provided by pm2
+
+# Verify the server is running
+pm2 status
+```
+
+**Linux/Mac (Bash):**
+```bash
+# Install pm2 (requires Node.js)
+npm install -g pm2
+
+# Make the script executable
+chmod +x ./scripts/start_mcp_server.sh
+
+# Start the MCP server with pm2
+./scripts/start_mcp_server.sh
+
+# Configure auto-start on system boot
+pm2 startup
+# Follow the instructions provided by pm2
+
+# Verify the server is running
+pm2 status
+```
+
+### Persistent Server Deployment (Always-On Operation)
+
+To ensure the MCP server runs continuously in the background (even after closing your terminal) and restarts automatically upon system reboot:
+
+1. Install pm2 globally: `npm install -g pm2`
+2. Run the startup script: `./scripts/start_mcp_server.sh`
+3. **Crucial Step:** Follow the instructions printed by the `pm2 startup` command to copy and paste the final command that configures the system service (e.g., systemd or launchd) to start the server automatically at boot.
+
+#### Managing the pm2 Service
+
+```bash
+# View server status
+pm2 status
+
+# View server logs
+pm2 logs mcp-codegen-server
+
+# Restart the server
+pm2 restart mcp-codegen-server
+
+# Stop the server
+pm2 stop mcp-codegen-server
+
+# Remove from pm2
+pm2 delete mcp-codegen-server
+
+# Save current pm2 process list
+pm2 save
+```
+
+#### Troubleshooting
+
+**Server won't start:**
+- Ensure Python is in your PATH: `python --version` or `python3 --version`
+- Verify you're in the correct directory (project root)
+- Check for port conflicts: `pm2 logs mcp-codegen-server`
+
+**Auto-start not working after reboot:**
+- Run `pm2 startup` and follow the instructions
+- After adding the startup entry, run `pm2 save` to persist the process list
+
 ## Project Structure
 
 ```
