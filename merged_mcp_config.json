@@ -59,12 +59,8 @@
     "codegen": {
       "command": "python",
       "args": [
-        "-m",
-        "mcp_codegen.server"
+        "scripts/run_mcp_server.py"
       ],
-      "env": {
-        "PYTHONPATH": "C:\\Users\\andel\\Desktop\\orchestrator"
-      },
       "cwd": "C:\\Users\\andel\\Desktop\\orchestrator"
     }
   },

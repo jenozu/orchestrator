@@ -1,4 +1,7 @@
 """Diagnostic test for OpenAI connection issues."""
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 import sys
 

@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import json
 from pathlib import Path
 from typing import Dict, Any
